@@ -17,6 +17,7 @@
 
 package org.apache.spark.examples.zero
 
+import org.apache.spark.HashPartitioner
 import org.apache.spark.sql.SparkSession
 
 
@@ -26,7 +27,7 @@ object SomePartitionFunc {
     val spark = SparkSession
       .builder()
       .master("local")
-      .appName("Spark SQL data sources example")
+      .appName("SomePartitionFunc")
       .config("spark.some.config.option", "some-value")
       .getOrCreate()
 
@@ -36,8 +37,9 @@ object SomePartitionFunc {
 
   private def testRepatition(spark: SparkSession): Unit = {
     val hdfsrdd = spark.sparkContext.textFile("E:/spark-2.3.0/README.md", 2)
-    var rddPar1 = hdfsrdd.coalesce(1, true)
-    var rddPar2 = hdfsrdd.repartition(2)
+    val rddPar1 = hdfsrdd.coalesce(1, true)
+    val rddPar2 = hdfsrdd.repartition(2)
+    val groupRdd = hdfsrdd.map(x => (x, x)).groupByKey(new org.apache.spark.HashPartitioner(4))
     // scalastyle:off println
     println(hdfsrdd.partitions.size)
     // scalastyle:on println
@@ -49,6 +51,12 @@ object SomePartitionFunc {
     // scalastyle:off println
     println(rddPar2.partitions.size)
     // scalastyle:on println
+
+    // scalastyle:off println
+    println(groupRdd.partitions.size)
+    // scalastyle:on println
+
+//    groupRdd.saveAsTextFile("D:/beh/groupRdd")
 
   }
 
