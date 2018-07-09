@@ -17,6 +17,7 @@
 
 package org.apache.spark.examples.zero
 
+import org.apache.spark.HashPartitioner
 import org.apache.spark.sql.SparkSession
 
 
@@ -28,8 +29,8 @@ object SomeTransformFunc {
       .appName("SomePartitionFunc")
       .config("spark.some.config.option", "some-value")
       .getOrCreate()
-
-    testBasicTransform(spark)
+    kvTransform(spark)
+//    testBasicTransform(spark)
     spark.stop()
   }
 
@@ -91,6 +92,64 @@ object SomeTransformFunc {
   }
 
   private def kvTransform(spark: SparkSession): Unit = {
+    val rdd = spark.sparkContext.makeRDD(1 to 20, 2)
+    val rdd1 = spark.sparkContext.makeRDD(Array((1, "A"), (2, "B"), (3, "C")))
+    val rdd2 = spark.sparkContext.makeRDD(Array(("A", 1), ("A", 2), ("C", 3)))
+    var transV = rdd1.map(x => (x._1, x._2 + "_"))
+    // scalastyle:off println
+    println("---------------this is a function of map----------------")
+    transV.collect().foreach(x => println(x))
+    // scalastyle:on println
+
+    val combine = rdd2.combineByKey((v: Int) => v + "_",
+      (c: String, v: Int) => c + "@" + v, (c1: String, c2: String) => c1 + "$" + c2)
+    // scalastyle:off println
+    println("---------------this is a function of combineByKey----------------")
+    combine.collect().foreach(x => println(x))
+    // scalastyle:on println
+
+    val fold = rdd2.foldByKey(0)(_ + _)// fold
+    // scalastyle:off println
+    println("---------------this is a function of foldByKey----------------")
+    fold.collect().foreach(x => println(x))
+    // scalastyle:on println
+
+    val group = rdd2.groupByKey()
+    // scalastyle:off println
+    println("---------------this is a function of groupByKey----------------")
+    group.collect().foreach(x => println(x))
+    // scalastyle:on println
+
+    val reduce = rdd2.reduceByKey(new HashPartitioner(2), (x, y) => x + y)// x,y all is v
+    // scalastyle:off println
+    println("---------------this is a function of reduceByKey----------------")
+    reduce.collect().foreach(x => println(x))
+    // scalastyle:on println
+
+    val map = rdd2.reduceByKeyLocally((x, y) => x + y)// result is a map
+    // scalastyle:off println
+    println("---------------this is a function of reduceByKeyLocally----------------")
+    map.foreach(x => println(x))
+    // scalastyle:on println
+
+    val rdd3 = spark.sparkContext.makeRDD(Array(("A", 2), ("B", 5)))
+    val cogroup = rdd2.cogroup(rdd3, rdd2) // RDD[K,V] use K make Equivalent connection
+    // scalastyle:off println
+    println("---------------this is a function of cogroup----------------")
+    cogroup.foreach(x => println(x))
+    // scalastyle:on println
+
+    var join = rdd2.join(rdd3)// RDD[K,V] use K make Equivalent connection
+    // scalastyle:off println
+    println("---------------this is a function of join----------------")
+    join.foreach(x => println(x))
+    // scalastyle:on println
+
+    val leftjoin = rdd2.leftOuterJoin(rdd3)// RDD[K,V] use K make Equivalent connection
+    // scalastyle:off println
+    println("---------------this is a function of leftOuterJoin----------------")
+    leftjoin.foreach(x => println(x))
+    // scalastyle:on println
 
   }
 
